@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta property="og:title" content="Money Timer" />
+    <meta property="og:description" content="How do you price your time?" />
+    <meta property="og:url" content="https://ryanh.co/money-timer" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script type="text/javascript" src="globals.js"></script>
+    <script type="text/javascript" src="timer.js"></script>
+    <script type="text/javascript" src="settings.js"></script>
+
+    <!-- Web favicon -->
+    <link rel="icon" href="icon.webp" type="image/x-icon" />
+
+    <!-- Roboto font -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Roboto"
+    />
+
+    <!-- Settings material icon -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,200,1,200&icon_names=settings"
+    />
+
+    <link rel="stylesheet" href="timerPage.css" />
+
+    <title>Money Timer</title>
+  </head>
+
+  <body>
+    <!-- Settings -->
+    <div id="settings">
+      <button
+        id="settings-button"
+        class="btn settingsBtn"
+        onclick="toggleSettings()"
+      >
+        <span class="material-symbols-outlined settingsBtn"> settings </span>
+      </button>
+
+      <div id="settingsModal" style="visibility: hidden">
+        <!-- rate slider -->
+        <div class="rate-container">
+          <a class="setting-label">Hourly Rate</a>
+
+          <div class="slider-container">
+            <span id="min-rate" class="rate-label">$0</span>
+            <input
+              type="range"
+              id="rate-slider"
+              min="0"
+              max="300"
+              value="0"
+              class="slider"
+              oninput="updateRate()"
+              onmousedown="pauseTimer()"
+            />
+            <span id="max-rate" class="rate-label">$300</span>
+          </div>
+
+          <!-- text input for rate value -->
+
+          <div id="rate-input-container">
+            <a>$</a>
+            <form
+              autocomplete="off"
+              onsubmit="updateSlider(); return false;"
+              novalidate
+            >
+              <input
+                autocomplete="false"
+                name="hidden"
+                type="text"
+                style="display: none"
+              />
+              <input
+                type="number"
+                id="rate-input"
+                value="0"
+                onblur="updateSlider()"
+                onfocus="pauseTimer(); updatePage();"
+              />
+              <input type="submit" hidden />
+            </form>
+            <a> / Hr </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timer -->
+    <div id="timer-container">
+      <div id="timer-money" style="padding-right: 5vw">💰 $0.00</div>
+
+      <div id="timer-time">00:00:00</div>
+
+      <div id="button-container">
+        <button
+          id="timer-control-btn"
+          class="btn toggleBtn startBtn"
+          type="button"
+          onclick="toggleTimer()"
+        >
+          Start
+        </button>
+        <button class="btn resetBtn" type="button" onclick="resetTimer()">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Version label -->
+    <div id="left-footer">
+      <div id="version-label" class="footer">v0.1.1</div>
+      <div id="left-footer-text" class="footer">
+        <i>How do you price your time?</i>
+      </div>
+    </div>
+  </body>
+</html>
