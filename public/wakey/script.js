@@ -1,4 +1,6 @@
 let currentWords = [];
+let visualWords = []; // Words as displayed (with swaps)
+let swappedPair = null; // [index1, index2] of swapped words
 let currentWordIndex = 0;
 let currentCharIndex = 0;
 let startTime = null;
@@ -24,15 +26,34 @@ function generateWords() {
         const randomIndex = Math.floor(Math.random() * allWords.length);
         currentWords.push(allWords[randomIndex]);
     }
+    
+    // Select 2 random words to swap (not first, last, or adjacent)
+    let index1, index2;
+    do {
+        index1 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
+        index2 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
+    } while (index1 === index2 || Math.abs(index1 - index2) === 1);
+    
+    swappedPair = [index1, index2];
+    
+    // Create visual array with swapped positions
+    visualWords = [...currentWords];
+    [visualWords[index1], visualWords[index2]] = [visualWords[index2], visualWords[index1]];
+    
     displayWords();
 }
 
 function displayWords() {
     wordsContainer.innerHTML = '';
-    currentWords.forEach((word, wordIndex) => {
+    visualWords.forEach((word, wordIndex) => {
         const wordElement = document.createElement('span');
         wordElement.className = 'word';
         wordElement.setAttribute('data-word-index', wordIndex);
+        
+        // Add swapped highlighting
+        if (swappedPair && swappedPair.includes(wordIndex)) {
+            wordElement.classList.add('swapped');
+        }
         
         word.split('').forEach((char, charIndex) => {
             const charElement = document.createElement('span');
@@ -130,6 +151,11 @@ function handleCharacterInput(typedChar) {
     const currentWord = currentWords[currentWordIndex];
     const expectedChar = currentWord[currentCharIndex];
     
+    // Trigger animation on first keystroke of swapped word
+    if (currentCharIndex === 0 && swappedPair && swappedPair.includes(currentWordIndex)) {
+        triggerWordSwapAnimation();
+    }
+    
     totalChars++;
     
     const currentCharElement = document.querySelector(`[data-word-index="${currentWordIndex}"] [data-char-index="${currentCharIndex}"]`);
@@ -220,10 +246,85 @@ function handleBackspace() {
     }
 }
 
+function triggerWordSwapAnimation() {
+    if (!swappedPair) return;
+    
+    const [index1, index2] = swappedPair;
+    const word1 = document.querySelector(`[data-word-index="${index1}"]`);
+    const word2 = document.querySelector(`[data-word-index="${index2}"]`);
+    
+    if (!word1 || !word2) return;
+    
+    // Add gliding class for animation
+    word1.classList.add('gliding');
+    word2.classList.add('gliding');
+    
+    // Remove yellow highlighting immediately
+    word1.classList.remove('swapped');
+    word2.classList.remove('swapped');
+    
+    // Trigger the visual content swap with animation
+    setTimeout(() => {
+        // Swap the actual displayed content back to correct order
+        const word1Content = currentWords[index1];
+        const word2Content = currentWords[index2];
+        
+        // Clear and rebuild the word elements with correct content
+        word1.innerHTML = '';
+        word2.innerHTML = '';
+        
+        // Rebuild word1 with correct content
+        word1Content.split('').forEach((char, charIndex) => {
+            const charElement = document.createElement('span');
+            charElement.className = 'char';
+            charElement.textContent = char;
+            charElement.setAttribute('data-char-index', charIndex);
+            word1.appendChild(charElement);
+        });
+        
+        // Rebuild word2 with correct content
+        word2Content.split('').forEach((char, charIndex) => {
+            const charElement = document.createElement('span');
+            charElement.className = 'char';
+            charElement.textContent = char;
+            charElement.setAttribute('data-char-index', charIndex);
+            word2.appendChild(charElement);
+        });
+        
+        // Update visual words array to match correct order
+        visualWords[index1] = word1Content;
+        visualWords[index2] = word2Content;
+        
+        // Remove animation class and add ex-swapped class for remnant coloring
+        word1.classList.remove('gliding');
+        word2.classList.remove('gliding');
+        word1.classList.add('ex-swapped');
+        word2.classList.add('ex-swapped');
+        
+        // If we're currently on one of the swapped words, mark all typed characters as correct
+        // since they were typed during the animation period
+        if (currentWordIndex === index1 || currentWordIndex === index2) {
+            const currentWordElement = document.querySelector(`[data-word-index="${currentWordIndex}"]`);
+            // Mark all characters up to current position as correct
+            for (let i = 0; i < currentCharIndex; i++) {
+                const charElement = currentWordElement.querySelector(`[data-char-index="${i}"]`);
+                if (charElement) {
+                    charElement.classList.add('correct');
+                }
+            }
+        }
+        
+        // Update current position highlighting
+        updateCurrentPosition();
+        
+        swappedPair = null; // Disable further animations
+    }, 300); // Match CSS animation duration
+}
+
 function finishGame() {
-    isGameActive = false;
     const finalWpm = calculateWPM();
     
+    isGameActive = false;
     if (finalWpm >= 80 && errors === 0) {
         showVictoryScreen(finalWpm);
     } else {
@@ -292,10 +393,17 @@ function resetGame() {
     totalChars = 0;
     isGameActive = false;
     lastError = null;
+    swappedPair = null;
+    visualWords = [];
     
     overlay.classList.remove('active');
     victoryScreen.classList.remove('active');
     failScreen.classList.remove('active');
+    
+    // Clear any remaining ex-swapped classes
+    document.querySelectorAll('.word').forEach(word => {
+        word.classList.remove('ex-swapped', 'swapped', 'gliding');
+    });
     
     wpmDisplay.textContent = '0 wpm';
     accuracyDisplay.textContent = '100%';

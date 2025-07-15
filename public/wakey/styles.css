@@ -84,6 +84,28 @@ main {
     padding: 0 4px;
 }
 
+.word.swapped {
+    background-color: #ffd700;
+    color: #000;
+    border-radius: 4px;
+    padding: 0 4px;
+    font-weight: bold;
+}
+
+.word.gliding {
+    transition: all 0.3s ease-out;
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+.word.ex-swapped .char {
+    color: #b8860b; /* Darker yellow for untyped chars */
+}
+
+.word.ex-swapped .char.correct {
+    color: #ffd700; /* Yellow for typed chars */
+}
+
 .char {
     transition: all 0.1s ease;
 }
