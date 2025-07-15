@@ -11,6 +11,39 @@ let totalChars = 0;
 let isGameActive = false;
 let allWords = wordData.words; // Use the global wordData from english_10k.js
 let lastError = null; // Track the last error for display
+let attemptsHistory = []; // Track recent typing attempts
+
+// App version
+const APP_VERSION = 'v0.0.6';
+
+// LocalStorage key for attempts history
+const ATTEMPTS_STORAGE_KEY = 'wakey_attempts_history';
+
+// LocalStorage functions
+function saveAttemptsHistory() {
+    try {
+        localStorage.setItem(ATTEMPTS_STORAGE_KEY, JSON.stringify(attemptsHistory));
+    } catch (error) {
+        console.warn('Failed to save attempts history:', error);
+    }
+}
+
+function loadAttemptsHistory() {
+    try {
+        const saved = localStorage.getItem(ATTEMPTS_STORAGE_KEY);
+        if (saved) {
+            attemptsHistory = JSON.parse(saved);
+            // Clean up old attempts (keep only last 1000 to prevent storage bloat)
+            if (attemptsHistory.length > 1000) {
+                attemptsHistory = attemptsHistory.slice(-1000);
+                saveAttemptsHistory();
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load attempts history:', error);
+        attemptsHistory = [];
+    }
+}
 
 // Sarcastic quotes for fail modal
 const sarcasticQuotes = [
@@ -110,6 +143,7 @@ const wpmDisplay = document.querySelector('.wpm');
 const accuracyDisplay = document.querySelector('.accuracy');
 const finalWpmDisplay = document.getElementById('finalWpm');
 const failReasonDisplay = document.getElementById('failReason');
+const attemptsContainer = document.getElementById('attemptsContainer');
 
 function generateWords() {
     currentWords = [];
@@ -231,6 +265,39 @@ function updateStats() {
     
     wpmDisplay.textContent = `${wpm} wpm`;
     accuracyDisplay.textContent = `${accuracy}%`;
+}
+
+function updateAttemptsBar() {
+    if (!attemptsContainer) return;
+    
+    // Calculate maximum segments based on container width
+    const containerWidth = attemptsContainer.offsetWidth - 4; // Account for padding
+    const segmentWidth = 8 + 1; // 8px width + 1px gap
+    const maxSegments = Math.floor(containerWidth / segmentWidth);
+    
+    // Clear existing segments
+    attemptsContainer.innerHTML = '';
+    
+    // Get recent attempts (up to maxSegments)
+    const recentAttempts = attemptsHistory.slice(-maxSegments);
+    
+    // Create segments for recent attempts
+    recentAttempts.forEach(attempt => {
+        const segment = document.createElement('div');
+        segment.className = `attempt-segment ${attempt.result}`;
+        segment.title = attempt.result === 'success' ? 
+            `Success: ${attempt.wpm} WPM` : 
+            `Failed: ${attempt.reason}`;
+        attemptsContainer.appendChild(segment);
+    });
+    
+    // Fill remaining space with empty segments
+    const remainingSlots = maxSegments - recentAttempts.length;
+    for (let i = 0; i < remainingSlots; i++) {
+        const segment = document.createElement('div');
+        segment.className = 'attempt-segment empty';
+        attemptsContainer.appendChild(segment);
+    }
 }
 
 function handleKeyPress(event) {
@@ -508,13 +575,37 @@ function finishGame() {
 }
 
 function showVictoryScreen(wpm) {
+    // Record success in attempts history
+    attemptsHistory.push({
+        result: 'success',
+        wpm: wpm,
+        timestamp: Date.now()
+    });
+    
+    // Save to localStorage
+    saveAttemptsHistory();
+    
     finalWpmDisplay.textContent = wpm;
     victoryScreen.classList.add('active');
     failScreen.classList.remove('active');
     overlay.classList.add('active');
+    
+    // Update attempts bar
+    updateAttemptsBar();
 }
 
 function showFailScreen(reason) {
+    // Record failure in attempts history
+    attemptsHistory.push({
+        result: 'failure',
+        reason: reason,
+        wpm: calculateWPM(),
+        timestamp: Date.now()
+    });
+    
+    // Save to localStorage
+    saveAttemptsHistory();
+    
     // Select appropriate quote array based on error type
     let quotesArray = sarcasticQuotes;
     if (lastError && lastError.type === 'swap_confusion') {
@@ -599,6 +690,9 @@ function showFailScreen(reason) {
     setTimeout(() => {
         failScreen.classList.add(`fail-${failAnimations[animationIndex]}`);
     }, 50);
+    
+    // Update attempts bar
+    updateAttemptsBar();
 }
 
 function resetGame() {
@@ -632,8 +726,20 @@ function resetGame() {
 
 // Initialize game
 document.addEventListener('DOMContentLoaded', () => {
+    // Set version number
+    const versionElement = document.getElementById('version');
+    if (versionElement) {
+        versionElement.textContent = APP_VERSION;
+    }
+    
+    // Load attempts history from localStorage
+    loadAttemptsHistory();
+    
     generateWords(); // Words are already loaded from english_10k.js
     typingInput.focus();
+    
+    // Initialize attempts bar
+    updateAttemptsBar();
     
     // Keep input focused
     document.addEventListener('click', () => {
@@ -645,6 +751,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Prevent losing focus
     typingInput.addEventListener('blur', () => {
         setTimeout(() => typingInput.focus(), 0);
+    });
+    
+    // Handle window resize to recalculate attempts bar
+    window.addEventListener('resize', () => {
+        updateAttemptsBar();
     });
 });
 

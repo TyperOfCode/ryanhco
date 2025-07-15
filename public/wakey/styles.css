@@ -70,11 +70,50 @@ main {
     padding: 2rem 3rem;
     background-color: #2a2a2a;
     border-radius: 10px;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     min-height: 200px;
     overflow: hidden;
     text-align: left;
     letter-spacing: 0;
+}
+
+.attempts-bar {
+    margin-bottom: 2rem;
+    padding: 0 3rem;
+}
+
+.attempts-container {
+    height: 12px;
+    background-color: #1a1a1a;
+    border-radius: 6px;
+    border: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    gap: 1px;
+    overflow: hidden;
+}
+
+.attempt-segment {
+    height: 6px;
+    width: 8px;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.attempt-segment.success {
+    background-color: #4caf50;
+    box-shadow: 0 0 3px rgba(76, 175, 80, 0.3);
+}
+
+.attempt-segment.failure {
+    background-color: #e53e3e;
+    box-shadow: 0 0 3px rgba(229, 62, 62, 0.3);
+}
+
+.attempt-segment.empty {
+    background-color: #2a2a2a;
+    border: 1px solid #3a3a3a;
 }
 
 .word {
@@ -471,6 +510,10 @@ main {
         letter-spacing: 0;
     }
     
+    .attempts-bar {
+        padding: 0 1.5rem;
+    }
+    
     .word {
         margin-right: 1rem;
     }
@@ -528,6 +571,19 @@ main {
         min-height: 120px;
         text-align: left;
         letter-spacing: 0;
+    }
+    
+    .attempts-bar {
+        padding: 0 1rem;
+    }
+    
+    .attempts-container {
+        height: 10px;
+    }
+    
+    .attempt-segment {
+        height: 5px;
+        width: 6px;
     }
     
     .word {
