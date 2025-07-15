@@ -10,6 +10,47 @@ let isGameActive = false;
 let allWords = wordData.words; // Use the global wordData from english_10k.js
 let lastError = null; // Track the last error for display
 
+// Sarcastic quotes for fail modal
+const sarcasticQuotes = [
+    "Fast fingers eh?",
+    "Maybe try decaf next time?",
+    "That's not how keyboards work...",
+    "Did you mean to do that?",
+    "Speed isn't everything, accuracy helps too",
+    "Your keyboard called, it wants a break",
+    "Slow down there, speedy!",
+    "Are you typing with your eyes closed?",
+    "Even a sloth would be more accurate",
+    "Houston, we have a problem",
+    "Oops! Try again, champ",
+    "Close, but no cigar",
+    "Better luck next time!",
+    "Are you sure you know the alphabet?",
+    "Maybe stick to hunt and peck?",
+    "Your fingers are faster than your brain",
+    "That's one way to do it... wrong",
+    "Practice makes perfect (eventually)",
+    "The keyboard is not your enemy",
+    "Take a deep breath and try again"
+];
+
+// Fail animation effects
+const failAnimations = [
+    'shake',
+    'bounce',
+    'wobble', 
+    'pulse',
+    'flip',
+    'slide-left',
+    'slide-right'
+];
+
+// Comic book style angles for quotes (in degrees)
+const comicAngles = [-8, -5, -3, 3, 5, 8, -12, 12, -2, 2];
+
+let lastQuoteIndex = -1;
+let lastAnimationIndex = -1;
+
 const wordsContainer = document.getElementById('wordsContainer');
 const typingInput = document.getElementById('typingInput');
 const overlay = document.getElementById('overlay');
@@ -123,6 +164,11 @@ function updateStats() {
 }
 
 function handleKeyPress(event) {
+    // Block input when modals are active
+    if (document.getElementById('overlay').classList.contains('active')) {
+        return;
+    }
+    
     if (!isGameActive) {
         startTime = Date.now();
         isGameActive = true;
@@ -179,6 +225,19 @@ function handleCharacterInput(typedChar) {
         currentCharElement.classList.remove('correct');
         errors++;
         
+        // Check if this is a swap-related error
+        let isSwapError = false;
+        if (swappedPair && swappedPair.includes(currentWordIndex)) {
+            // Get the swapped word (the other word in the pair)
+            const swappedWordIndex = swappedPair.find(index => index !== currentWordIndex);
+            const swappedWord = currentWords[swappedWordIndex];
+            
+            // Check if typed character matches the same position in the swapped word
+            if (currentCharIndex < swappedWord.length && typedChar === swappedWord[currentCharIndex]) {
+                isSwapError = true;
+            }
+        }
+        
         // Store error details
         lastError = {
             word: currentWord,
@@ -186,11 +245,14 @@ function handleCharacterInput(typedChar) {
             charIndex: currentCharIndex,
             expected: expectedChar,
             typed: typedChar,
-            type: 'wrong_character'
+            type: isSwapError ? 'swap_confusion' : 'wrong_character'
         };
         
         // Immediate failure on mistake
-        showFailScreen('You typed the wrong character!');
+        const failMessage = isSwapError ? 
+            'Watch out for the swap! You typed from the wrong position.' : 
+            'You typed the wrong character!';
+        showFailScreen(failMessage);
         return;
     }
     
@@ -341,6 +403,25 @@ function showVictoryScreen(wpm) {
 }
 
 function showFailScreen(reason) {
+    // Random sarcastic quote selection (avoid consecutive repeats)
+    let quoteIndex;
+    do {
+        quoteIndex = Math.floor(Math.random() * sarcasticQuotes.length);
+    } while (quoteIndex === lastQuoteIndex && sarcasticQuotes.length > 1);
+    lastQuoteIndex = quoteIndex;
+    
+    // Random animation selection (avoid consecutive repeats)
+    let animationIndex;
+    do {
+        animationIndex = Math.floor(Math.random() * failAnimations.length);
+    } while (animationIndex === lastAnimationIndex && failAnimations.length > 1);
+    lastAnimationIndex = animationIndex;
+    
+    // Display sarcastic quote with random comic book angle
+    const sarcasticQuoteElement = document.getElementById('sarcasticQuote');
+    const randomAngle = comicAngles[Math.floor(Math.random() * comicAngles.length)];
+    sarcasticQuoteElement.textContent = sarcasticQuotes[quoteIndex];
+    sarcasticQuoteElement.style.transform = `rotate(${randomAngle}deg)`;
     failReasonDisplay.textContent = reason;
     
     // Display error details if available
@@ -372,6 +453,9 @@ function showFailScreen(reason) {
             errorHTML += `You typed <strong>"${lastError.typed}"</strong> instead of <strong>"${lastError.expected}"</strong>`;
         } else if (lastError.type === 'early_space') {
             errorHTML += `You pressed <strong>space</strong> at position ${lastError.charIndex + 1}, but the word has ${lastError.word.length} characters`;
+        } else if (lastError.type === 'swap_confusion') {
+            errorHTML += `You typed <strong>"${lastError.typed}"</strong> instead of <strong>"${lastError.expected}"</strong>`;
+            errorHTML += `<br><br><div class="swap-hint">💡 <strong>Swap Effect Hint:</strong> Two words in yellow are actually swapped! Type the other yellow word in its place. </div>`;
         }
         
         errorHTML += '</div>';
@@ -380,9 +464,18 @@ function showFailScreen(reason) {
         errorDetailsElement.innerHTML = '';
     }
     
+    // Remove any existing animation classes
+    failScreen.classList.remove('fail-shake', 'fail-bounce', 'fail-wobble', 'fail-pulse', 'fail-flip', 'fail-slide-left', 'fail-slide-right');
+    
+    // Show the modal first
     failScreen.classList.add('active');
     victoryScreen.classList.remove('active');
     overlay.classList.add('active');
+    
+    // Add animation class with slight delay to ensure modal is visible
+    setTimeout(() => {
+        failScreen.classList.add(`fail-${failAnimations[animationIndex]}`);
+    }, 50);
 }
 
 function resetGame() {
@@ -432,6 +525,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Auto-focus on typing input
 document.addEventListener('keydown', (event) => {
+    // Block auto-focus when modals are active
+    if (document.getElementById('overlay').classList.contains('active')) {
+        return;
+    }
+    
     if (event.target !== typingInput && event.key.length === 1) {
         typingInput.focus();
     }
