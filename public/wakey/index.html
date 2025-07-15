@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wakey - Typing Test</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>wakey</h1>
+            <div class="stats">
+                <span class="wpm">0 wpm</span>
+                <span class="accuracy">100%</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="typing-area">
+                <div class="words-container" id="wordsContainer"></div>
+                <input type="text" id="typingInput" class="typing-input" autocomplete="off" autocorrect="off" spellcheck="false">
+            </div>
+        </main>
+
+        <div class="overlay" id="overlay">
+            <div class="result-screen" id="resultScreen">
+                <div class="victory-screen" id="victoryScreen">
+                    <img src="victory.png" alt="Victory" class="victory-image">
+                    <h2>Victory!</h2>
+                    <p>You achieved <span id="finalWpm"></span> WPM!</p>
+                    <button class="restart-btn" onclick="resetGame()">Try Again</button>
+                </div>
+                <div class="fail-screen" id="failScreen">
+                    <h2>Failed!</h2>
+                    <p id="failReason"></p>
+                    <div class="error-details" id="errorDetails"></div>
+                    <button class="restart-btn" onclick="resetGame()">Try Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="english_10k.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
