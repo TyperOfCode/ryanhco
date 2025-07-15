@@ -1,6 +1,8 @@
 let currentWords = [];
 let visualWords = []; // Words as displayed (with swaps)
 let swappedPair = null; // [index1, index2] of swapped words
+let memoryPair = null; // [index1, index2] of memory words
+let memoryTriggered = false; // Track if memory effect has been activated
 let currentWordIndex = 0;
 let currentCharIndex = 0;
 let startTime = null;
@@ -31,7 +33,55 @@ const sarcasticQuotes = [
     "That's one way to do it... wrong",
     "Practice makes perfect (eventually)",
     "The keyboard is not your enemy",
-    "Take a deep breath and try again"
+    "Take a deep breath and try again",
+    "Well, that escalated quickly",
+    "Did you forget how to spell?",
+    "Your typing skills need work",
+    "Time to go back to typing class",
+    "Autocorrect can't save you here",
+    "Maybe typing isn't your forte",
+    "Error 404: Accuracy not found",
+    "Mission failed successfully",
+    "You've mastered the art of mistakes",
+    "Congratulations, you played yourself",
+    "Task failed spectacularly",
+    "That's a bold strategy, didn't work",
+    "Plot twist: You're the typo",
+    "Achievement unlocked: Epic fail",
+    "Roses are red, violets are blue, you typed wrong, what's new?",
+    "Breaking news: Local person can't type",
+    "Typo master at your service",
+    "You're typing like a cat on the keyboard",
+    "Did your fingers have a stroke?",
+    "That's not the alphabet I know"
+];
+
+// Special quotes for swap confusion
+const swapQuotes = [
+    "Yellow means swapped, not fast!",
+    "Those yellow words switched places!",
+    "Did the swap trick you?",
+    "Yellow alert: Position changed!",
+    "The old switcheroo got you!",
+    "Yellow words play musical chairs",
+    "Swap confusion strikes again!",
+    "Those yellow words are sneaky",
+    "Location, location, location!",
+    "The yellow words did a dance"
+];
+
+// Special quotes for memory confusion  
+const memoryQuotes = [
+    "Memory test: Failed!",
+    "Did you forget already?",
+    "Those grey blocks held secrets!",
+    "Your memory needs an upgrade",
+    "The blocks defeated you!",
+    "Grey words vanished into blocks",
+    "Memory challenge: Not accepted",
+    "Those blocks were once words",
+    "Your brain storage is full",
+    "The disappearing word trick worked!"
 ];
 
 // Fail animation effects
@@ -69,17 +119,32 @@ function generateWords() {
     }
     
     // Select 2 random words to swap (not first, last, or adjacent)
-    let index1, index2;
+    let swapIndex1, swapIndex2;
     do {
-        index1 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
-        index2 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
-    } while (index1 === index2 || Math.abs(index1 - index2) === 1);
+        swapIndex1 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
+        swapIndex2 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
+    } while (swapIndex1 === swapIndex2 || Math.abs(swapIndex1 - swapIndex2) === 1);
     
-    swappedPair = [index1, index2];
+    swappedPair = [swapIndex1, swapIndex2];
+    
+    // Select 2 random words for memory effect (not first, last, adjacent, or overlapping with swap)
+    let memIndex1, memIndex2;
+    do {
+        memIndex1 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
+        memIndex2 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
+    } while (
+        memIndex1 === memIndex2 || 
+        Math.abs(memIndex1 - memIndex2) < 2 || // At least 2 words apart
+        swappedPair.includes(memIndex1) || 
+        swappedPair.includes(memIndex2)
+    );
+    
+    memoryPair = [memIndex1, memIndex2];
+    memoryTriggered = false;
     
     // Create visual array with swapped positions
     visualWords = [...currentWords];
-    [visualWords[index1], visualWords[index2]] = [visualWords[index2], visualWords[index1]];
+    [visualWords[swapIndex1], visualWords[swapIndex2]] = [visualWords[swapIndex2], visualWords[swapIndex1]];
     
     displayWords();
 }
@@ -94,6 +159,11 @@ function displayWords() {
         // Add swapped highlighting
         if (swappedPair && swappedPair.includes(wordIndex)) {
             wordElement.classList.add('swapped');
+        }
+        
+        // Add memory highlighting
+        if (memoryPair && memoryPair.includes(wordIndex) && !memoryTriggered) {
+            wordElement.classList.add('memory');
         }
         
         word.split('').forEach((char, charIndex) => {
@@ -202,6 +272,11 @@ function handleCharacterInput(typedChar) {
         triggerWordSwapAnimation();
     }
     
+    // Trigger memory effect on first keystroke of memory word
+    if (currentCharIndex === 0 && memoryPair && memoryPair.includes(currentWordIndex) && !memoryTriggered) {
+        triggerMemoryEffect();
+    }
+    
     totalChars++;
     
     const currentCharElement = document.querySelector(`[data-word-index="${currentWordIndex}"] [data-char-index="${currentCharIndex}"]`);
@@ -238,20 +313,36 @@ function handleCharacterInput(typedChar) {
             }
         }
         
+        // Check if this is a memory-related error
+        let isMemoryError = false;
+        if (memoryPair && memoryPair.includes(currentWordIndex) && memoryTriggered) {
+            isMemoryError = true;
+        }
+        
         // Store error details
+        let errorType = 'wrong_character';
+        if (isSwapError) {
+            errorType = 'swap_confusion';
+        } else if (isMemoryError) {
+            errorType = 'memory_confusion';
+        }
+        
         lastError = {
             word: currentWord,
             wordIndex: currentWordIndex,
             charIndex: currentCharIndex,
             expected: expectedChar,
             typed: typedChar,
-            type: isSwapError ? 'swap_confusion' : 'wrong_character'
+            type: errorType
         };
         
         // Immediate failure on mistake
-        const failMessage = isSwapError ? 
-            'Watch out for the swap! You typed from the wrong position.' : 
-            'You typed the wrong character!';
+        let failMessage = 'You typed the wrong character!';
+        if (isSwapError) {
+            failMessage = 'Watch out for the swap! You typed from the wrong position.';
+        } else if (isMemoryError) {
+            failMessage = 'Memory challenge failed! The word was hidden.';
+        }
         showFailScreen(failMessage);
         return;
     }
@@ -383,14 +474,35 @@ function triggerWordSwapAnimation() {
     }, 300); // Match CSS animation duration
 }
 
+function triggerMemoryEffect() {
+    if (!memoryPair || memoryTriggered) return;
+    
+    memoryTriggered = true;
+    
+    memoryPair.forEach(wordIndex => {
+        const wordElement = document.querySelector(`[data-word-index="${wordIndex}"]`);
+        if (!wordElement) return;
+        
+        // Remove memory highlighting
+        wordElement.classList.remove('memory');
+        wordElement.classList.add('memory-blocked');
+        
+        // Replace all characters with blocks
+        const charElements = wordElement.querySelectorAll('.char');
+        charElements.forEach(charElement => {
+            charElement.textContent = '█';
+        });
+    });
+}
+
 function finishGame() {
     const finalWpm = calculateWPM();
     
     isGameActive = false;
-    if (finalWpm >= 80 && errors === 0) {
+    if (finalWpm >= 65 && errors === 0) {
         showVictoryScreen(finalWpm);
     } else {
-        const reason = errors > 0 ? 'You made mistakes!' : `You only achieved ${finalWpm} WPM. Need 80+ WPM!`;
+        const reason = errors > 0 ? 'You made mistakes!' : `You only achieved ${finalWpm} WPM. Need 65+ WPM!`;
         showFailScreen(reason);
     }
 }
@@ -403,11 +515,19 @@ function showVictoryScreen(wpm) {
 }
 
 function showFailScreen(reason) {
-    // Random sarcastic quote selection (avoid consecutive repeats)
+    // Select appropriate quote array based on error type
+    let quotesArray = sarcasticQuotes;
+    if (lastError && lastError.type === 'swap_confusion') {
+        quotesArray = swapQuotes;
+    } else if (lastError && lastError.type === 'memory_confusion') {
+        quotesArray = memoryQuotes;
+    }
+    
+    // Random quote selection (avoid consecutive repeats)
     let quoteIndex;
     do {
-        quoteIndex = Math.floor(Math.random() * sarcasticQuotes.length);
-    } while (quoteIndex === lastQuoteIndex && sarcasticQuotes.length > 1);
+        quoteIndex = Math.floor(Math.random() * quotesArray.length);
+    } while (quoteIndex === lastQuoteIndex && quotesArray.length > 1);
     lastQuoteIndex = quoteIndex;
     
     // Random animation selection (avoid consecutive repeats)
@@ -420,7 +540,7 @@ function showFailScreen(reason) {
     // Display sarcastic quote with random comic book angle
     const sarcasticQuoteElement = document.getElementById('sarcasticQuote');
     const randomAngle = comicAngles[Math.floor(Math.random() * comicAngles.length)];
-    sarcasticQuoteElement.textContent = sarcasticQuotes[quoteIndex];
+    sarcasticQuoteElement.textContent = quotesArray[quoteIndex];
     sarcasticQuoteElement.style.transform = `rotate(${randomAngle}deg)`;
     failReasonDisplay.textContent = reason;
     
@@ -456,6 +576,9 @@ function showFailScreen(reason) {
         } else if (lastError.type === 'swap_confusion') {
             errorHTML += `You typed <strong>"${lastError.typed}"</strong> instead of <strong>"${lastError.expected}"</strong>`;
             errorHTML += `<br><br><div class="swap-hint">💡 <strong>Swap Effect Hint:</strong> Two words in yellow are actually swapped! Type the other yellow word in its place. </div>`;
+        } else if (lastError.type === 'memory_confusion') {
+            errorHTML += `You typed <strong>"${lastError.typed}"</strong> instead of <strong>"${lastError.expected}"</strong>`;
+            errorHTML += `<br><br><div class="memory-hint">🧠 <strong>Memory Effect Hint:</strong> Two words in grey should be memorized! When you start typing the first grey word, both words turn into blocks (█). You must remember what the words were and type them correctly from memory.</div>`;
         }
         
         errorHTML += '</div>';
@@ -487,15 +610,17 @@ function resetGame() {
     isGameActive = false;
     lastError = null;
     swappedPair = null;
+    memoryPair = null;
+    memoryTriggered = false;
     visualWords = [];
     
     overlay.classList.remove('active');
     victoryScreen.classList.remove('active');
     failScreen.classList.remove('active');
     
-    // Clear any remaining ex-swapped classes
+    // Clear any remaining classes
     document.querySelectorAll('.word').forEach(word => {
-        word.classList.remove('ex-swapped', 'swapped', 'gliding');
+        word.classList.remove('ex-swapped', 'swapped', 'gliding', 'memory', 'memory-blocked');
     });
     
     wpmDisplay.textContent = '0 wpm';
