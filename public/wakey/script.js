@@ -68,8 +68,22 @@ function calculateWPM() {
     
     const currentTime = Date.now();
     const timeElapsed = (currentTime - startTime) / 1000 / 60; // Convert to minutes
+    
+    // Debug logging
+    console.log('WPM Calculation:', {
+        timeElapsed: timeElapsed,
+        totalChars: totalChars,
+        startTime: startTime,
+        currentTime: currentTime
+    });
+    
+    // Prevent division by zero - use minimum of 0.1 seconds (0.00167 minutes)
+    const minTimeElapsed = Math.max(timeElapsed, 0.00167);
+    
     const charactersTyped = totalChars;
-    const wpm = Math.round((charactersTyped / 5) / timeElapsed);
+    const wpm = Math.round((charactersTyped / 5) / minTimeElapsed);
+    
+    console.log('Final WPM:', wpm, 'using timeElapsed:', minTimeElapsed);
     
     return wpm || 0;
 }
