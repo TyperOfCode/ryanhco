@@ -174,15 +174,23 @@ main {
 }
 
 .char.current::before {
-    content: '';
+    /* Hide the original cursor - using smooth cursor instead */
+    display: none;
+}
+
+.smooth-cursor {
     position: absolute;
-    left: -2px;
-    top: 50%;
-    height: 0.8em;
-    width: 2px;
+    width: 3px;
+    height: 2em;
     background-color: #9b59b6;
-    animation: blink-cursor 1s infinite;
     transform: translateY(-50%);
+    transition: all 0.1s ease-out;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.overlay.active ~ main .smooth-cursor {
+    display: none;
 }
 
 @keyframes blink-cursor {

@@ -14,7 +14,7 @@ let lastError = null; // Track the last error for display
 let attemptsHistory = []; // Track recent typing attempts
 
 // App version
-const APP_VERSION = 'v0.0.6';
+const APP_VERSION = 'v0.0.7';
 
 // LocalStorage key for attempts history
 const ATTEMPTS_STORAGE_KEY = 'wakey_attempts_history';
@@ -45,7 +45,6 @@ function loadAttemptsHistory() {
     }
 }
 
-// Sarcastic quotes for fail modal
 const sarcasticQuotes = [
     "Fast fingers eh?",
     "Maybe try decaf next time?",
@@ -89,7 +88,6 @@ const sarcasticQuotes = [
     "That's not the alphabet I know"
 ];
 
-// Special quotes for swap confusion
 const swapQuotes = [
     "Yellow means swapped, not fast!",
     "Those yellow words switched places!",
@@ -103,7 +101,6 @@ const swapQuotes = [
     "The yellow words did a dance"
 ];
 
-// Special quotes for memory confusion  
 const memoryQuotes = [
     "Memory test: Failed!",
     "Did you forget already?",
@@ -117,7 +114,6 @@ const memoryQuotes = [
     "The disappearing word trick worked!"
 ];
 
-// Fail animation effects
 const failAnimations = [
     'shake',
     'bounce',
@@ -168,7 +164,7 @@ function generateWords() {
         memIndex2 = Math.floor(Math.random() * (15 - 2)) + 1; // 1 to 13
     } while (
         memIndex1 === memIndex2 || 
-        Math.abs(memIndex1 - memIndex2) < 2 || // At least 2 words apart
+        Math.abs(memIndex1 - memIndex2) < 7 || // At least 7 words apart
         swappedPair.includes(memIndex1) || 
         swappedPair.includes(memIndex2)
     );
@@ -225,6 +221,65 @@ function updateCurrentPosition() {
         const currentChar = currentWord.querySelector(`[data-char-index="${currentCharIndex}"]`);
         if (currentChar) {
             currentChar.classList.add('current');
+        }
+        
+        // Update smooth cursor position
+        updateSmoothCursorPosition();
+    }
+}
+
+function updateSmoothCursor(currentChar) {
+    let cursor = document.querySelector('.smooth-cursor');
+    if (!cursor) {
+        cursor = document.createElement('div');
+        cursor.className = 'smooth-cursor';
+        document.querySelector('.typing-area').appendChild(cursor);
+    }
+    
+    const rect = currentChar.getBoundingClientRect();
+    const containerRect = document.querySelector('.typing-area').getBoundingClientRect();
+    
+    cursor.style.left = (rect.left - containerRect.left - 2) + 'px';
+    cursor.style.top = (rect.top - containerRect.top + rect.height / 2) + 'px';
+}
+
+function updateSmoothCursorPosition() {
+    const currentWord = document.querySelector(`[data-word-index="${currentWordIndex}"]`);
+    if (!currentWord) return;
+    
+    let cursor = document.querySelector('.smooth-cursor');
+    if (!cursor) {
+        cursor = document.createElement('div');
+        cursor.className = 'smooth-cursor';
+        document.querySelector('.typing-area').appendChild(cursor);
+    }
+    
+    // Hide cursor if any modal is active
+    if (document.getElementById('overlay').classList.contains('active')) {
+        cursor.style.display = 'none';
+        return;
+    } else {
+        cursor.style.display = 'block';
+    }
+    
+    const containerRect = document.querySelector('.typing-area').getBoundingClientRect();
+    
+    // Check if we're at the end of the word
+    if (currentCharIndex >= currentWords[currentWordIndex].length) {
+        // Position cursor after the last character
+        const lastChar = currentWord.querySelector(`[data-char-index="${currentWords[currentWordIndex].length - 1}"]`);
+        if (lastChar) {
+            const rect = lastChar.getBoundingClientRect();
+            cursor.style.left = (rect.right - containerRect.left + 2) + 'px';
+            cursor.style.top = (rect.top - containerRect.top + rect.height / 2) + 'px';
+        }
+    } else {
+        // Position cursor at current character
+        const currentChar = currentWord.querySelector(`[data-char-index="${currentCharIndex}"]`);
+        if (currentChar) {
+            const rect = currentChar.getBoundingClientRect();
+            cursor.style.left = (rect.left - containerRect.left - 2) + 'px';
+            cursor.style.top = (rect.top - containerRect.top + rect.height / 2) + 'px';
         }
     }
 }
@@ -303,6 +358,11 @@ function updateAttemptsBar() {
 function handleKeyPress(event) {
     // Block input when modals are active
     if (document.getElementById('overlay').classList.contains('active')) {
+        return;
+    }
+    
+    // Block input when modifier keys are pressed (Cmd, Ctrl, Alt, Shift)
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
         return;
     }
     
@@ -590,6 +650,12 @@ function showVictoryScreen(wpm) {
     failScreen.classList.remove('active');
     overlay.classList.add('active');
     
+    // Hide cursor when modal appears
+    const cursor = document.querySelector('.smooth-cursor');
+    if (cursor) {
+        cursor.style.display = 'none';
+    }
+    
     // Update attempts bar
     updateAttemptsBar();
 }
@@ -686,6 +752,12 @@ function showFailScreen(reason) {
     victoryScreen.classList.remove('active');
     overlay.classList.add('active');
     
+    // Hide cursor when modal appears
+    const cursor = document.querySelector('.smooth-cursor');
+    if (cursor) {
+        cursor.style.display = 'none';
+    }
+    
     // Add animation class with slight delay to ensure modal is visible
     setTimeout(() => {
         failScreen.classList.add(`fail-${failAnimations[animationIndex]}`);
@@ -716,6 +788,12 @@ function resetGame() {
     document.querySelectorAll('.word').forEach(word => {
         word.classList.remove('ex-swapped', 'swapped', 'gliding', 'memory', 'memory-blocked');
     });
+    
+    // Remove smooth cursor
+    const cursor = document.querySelector('.smooth-cursor');
+    if (cursor) {
+        cursor.remove();
+    }
     
     wpmDisplay.textContent = '0 wpm';
     accuracyDisplay.textContent = '100%';
@@ -763,6 +841,11 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('keydown', (event) => {
     // Block auto-focus when modals are active
     if (document.getElementById('overlay').classList.contains('active')) {
+        return;
+    }
+    
+    // Block auto-focus when modifier keys are pressed (Cmd, Ctrl, Alt, Shift)
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
         return;
     }
     
