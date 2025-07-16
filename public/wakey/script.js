@@ -356,13 +356,26 @@ function updateAttemptsBar() {
 }
 
 function handleKeyPress(event) {
+    const typedChar = event.key;
+    
+    if (typedChar === 'Enter') {
+        event.preventDefault();
+        
+        if (document.getElementById('overlay').classList.contains('active')) {
+            resetGame();
+            return;
+        }
+        
+        handleEnterRestart();
+        return;
+    }
+    
     // Block input when modals are active
     if (document.getElementById('overlay').classList.contains('active')) {
         return;
     }
     
-    // Block input when modifier keys are pressed (Cmd, Ctrl, Alt, Shift)
-    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
         return;
     }
     
@@ -370,8 +383,6 @@ function handleKeyPress(event) {
         startTime = Date.now();
         isGameActive = true;
     }
-    
-    const typedChar = event.key;
     
     if (typedChar === ' ') {
         event.preventDefault();
@@ -524,6 +535,21 @@ function handleBackspace() {
         updateCurrentPosition();
         updateStats();
     }
+}
+
+function handleEnterRestart() {
+    if (isGameActive) {
+        attemptsHistory.push({
+            result: 'failure',
+            reason: 'Manual restart',
+            wpm: calculateWPM(),
+            timestamp: Date.now()
+        });
+        
+        saveAttemptsHistory();
+    }
+    
+    resetGame();
 }
 
 function triggerWordSwapAnimation() {
@@ -800,6 +826,8 @@ function resetGame() {
     
     generateWords();
     typingInput.focus();
+    
+    updateAttemptsBar();
 }
 
 // Initialize game
