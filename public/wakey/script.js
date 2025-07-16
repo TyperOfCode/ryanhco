@@ -14,7 +14,7 @@ let lastError = null; // Track the last error for display
 let attemptsHistory = []; // Track recent typing attempts
 
 // App version
-const APP_VERSION = 'v0.0.7';
+const APP_VERSION = 'v0.0.8';
 
 // LocalStorage key for attempts history
 const ATTEMPTS_STORAGE_KEY = 'wakey_attempts_history';
